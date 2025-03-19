@@ -1,0 +1,25 @@
+.ms-teams-indicator-icon {
+    background-image: url('ms-teams-indicator-icon.svg');
+    background-size: 22px;
+    width: 22px;
+    height: 22px;
+}
+
+.ms-teams-indicator-icon-alert {
+    background-image: url('ms-teams-indicator-icon-alert.svg');
+    background-size: 22px;
+    width: 22px;
+    height: 22px;
+    position: relative;
+}
+
+.ms-teams-indicator-icon-alert::after {
+    content: '';
+    background: #ff0000;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}

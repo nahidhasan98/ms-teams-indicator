@@ -1,0 +1,13 @@
+{
+  "name": "MS Teams Indicator",
+  "description": "Shows MS Teams PWA status with notifications",
+  "uuid": "ms-teams-indicator@nahidhasan98.github.com",
+  "shell-version": [
+    "42",
+    "43",
+    "44",
+    "45"
+  ],
+  "version": 1,
+  "url": "https://github.com/nahidhasan98/ms-teams-indicator"
+}
