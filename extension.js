@@ -57,7 +57,7 @@ const TeamsIndicator = GObject.registerClass(
 
             // Create the panel icon
             this.icon = new St.Icon({
-                gicon: Gio.icon_new_for_string(Me.path + '/ms-teams-indicator-icon.svg'),
+                gicon: Gio.icon_new_for_string(Me.path + '/assets/ms-teams-indicator-icon.svg'),
                 style_class: 'system-status-icon'
             });
             this.add_child(this.icon);
@@ -86,7 +86,7 @@ const TeamsIndicator = GObject.registerClass(
         _updateIcon(teamsAppName) {
             checkUnread(teamsAppName).then((unread) => {
                 this.icon.gicon = Gio.icon_new_for_string(
-                    Me.path + (unread ? '/ms-teams-indicator-icon-alert.svg' : '/ms-teams-indicator-icon.svg')
+                    Me.path + (unread ? '/assets/ms-teams-indicator-icon-alert.svg' : '/assets/ms-teams-indicator-icon.svg')
                 );
             }).catch((error) => {
                 logError(error, 'Error updating icon');
