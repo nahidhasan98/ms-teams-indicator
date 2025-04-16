@@ -23,3 +23,16 @@
     top: 2px;
     right: 2px;
 }
+
+.ms-teams-menu-box {
+    spacing: 6px;
+    padding: 8px;
+}
+
+.ms-teams-menu-box StEntry {
+    min-width: 200px;
+}
+
+.ms-teams-menu-box .button {
+    padding: 4px 12px;
+}

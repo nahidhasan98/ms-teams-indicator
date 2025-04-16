@@ -1,13 +1,13 @@
 {
-  "name": "MS Teams Indicator",
-  "description": "Shows MS Teams PWA status with notifications",
   "uuid": "ms-teams-indicator@nahidhasan98.github.com",
+  "name": "Microsoft Teams Indicator",
+  "description": "Shows MS Teams PWA status with notifications. This extension is not affiliated, funded, or in any way associated with Microsoft and Microsoft Teams software.",
   "shell-version": [
     "42",
     "43",
-    "44",
-    "45"
+    "44"
   ],
   "version": 1,
-  "url": "https://github.com/nahidhasan98/ms-teams-indicator"
+  "url": "https://github.com/nahidhasan98/ms-teams-indicator",
+  "settings-schema": "org.gnome.shell.extensions.ms-teams-indicator"
 }

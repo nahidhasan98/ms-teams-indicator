@@ -2,34 +2,41 @@ const { GLib, GObject, St, Shell, Clutter, Gio } = imports.gi;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const ExtensionUtils = imports.misc.extensionUtils;
 
 let indicator;
 
-function checkUnread() {
+function checkUnread(teamsAppName) {
     return new Promise((resolve, reject) => {
         try {
+            // Check if wmctrl is installed
+            if (!GLib.find_program_in_path('wmctrl')) {
+                logError(new Error('wmctrl is not installed'));
+                return resolve(false);
+            }
+
             let proc = new Gio.Subprocess({
                 argv: ['wmctrl', '-l'],
                 flags: Gio.SubprocessFlags.STDOUT_PIPE
             });
 
-            proc.init(null); // Initialize the subprocess
+            proc.init(null);
 
             proc.communicate_utf8_async(null, null, (proc, result) => {
                 try {
                     let [success, output] = proc.communicate_utf8_finish(result);
-                    if (!success || !output) return resolve(false);
+                    if (!success || !output) {
+                        logError(new Error('Failed to get window list'));
+                        return resolve(false);
+                    }
 
-                    // Check if Microsoft Teams window is open and contains the string "Teams - Chat"
-                    const isUnread = !output.includes('Teams - Chat');
-
+                    const isUnread = !output.includes(teamsAppName);
                     resolve(isUnread);
                 } catch (e) {
-                    logError(e, 'Error processing unread messages');
+                    logError(e, 'Error processing window list');
                     resolve(false);
                 }
             });
-
         } catch (e) {
             logError(e, 'Error checking unread messages');
             resolve(false);
@@ -42,63 +49,88 @@ const TeamsIndicator = GObject.registerClass(
         _init() {
             super._init(0.0, 'MS Teams Indicator');
 
+            // Get teams app name from settings
+            this._settings = ExtensionUtils.getSettings(
+                'org.gnome.shell.extensions.ms-teams-indicator'
+            );
+            this.teamsAppName = this._settings.get_string('ms-teams-app-name');
+
+            // Create the panel icon
             this.icon = new St.Icon({
                 gicon: Gio.icon_new_for_string(Me.path + '/ms-teams-indicator-icon.svg'),
                 style_class: 'system-status-icon'
             });
             this.add_child(this.icon);
 
-            this._updateIcon();
+            // Set up periodic updates
+            this._updateIcon(this.teamsAppName);
             this._timeout = GLib.timeout_add_seconds(
                 GLib.PRIORITY_DEFAULT,
-                5,
+                3,
                 () => {
-                    this._updateIcon();
+                    this._updateIcon(this.teamsAppName);
                     return true;
                 }
             );
 
-            // Add the click event handler to open the Microsoft Teams window
             this.connect('button-press-event', this._onClick.bind(this));
+
+            // Watch for settings changes
+            this._settingsChangedId = this._settings.connect('changed::ms-teams-app-name',
+                () => {
+                    this.teamsAppName = this._settings.get_string('ms-teams-app-name');
+                }
+            );
         }
 
-        _updateIcon() {
-            checkUnread().then((unread) => {
-                // Update the icon based on the unread status
+        _updateIcon(teamsAppName) {
+            checkUnread(teamsAppName).then((unread) => {
                 this.icon.gicon = Gio.icon_new_for_string(
                     Me.path + (unread ? '/ms-teams-indicator-icon-alert.svg' : '/ms-teams-indicator-icon.svg')
                 );
             }).catch((error) => {
-                console.error('Error checking unread status:', error);
+                logError(error, 'Error updating icon');
             });
         }
 
         _onClick() {
+            if (!GLib.find_program_in_path('wmctrl')) {
+                logError(new Error('wmctrl is not installed. Please install it to use this feature.'));
+                return;
+            }
+
             try {
-                // Use wmctrl to activate the Microsoft Teams window
                 const [success, pid] = GLib.spawn_async(
-                    null, // Working directory (null for current)
-                    ['wmctrl', '-a', 'Microsoft Teams'], // Command and arguments
-                    null, // Environment (null for default)
-                    GLib.SpawnFlags.SEARCH_PATH, // Use SEARCH_PATH to find the command
-                    null // Child setup function (null for default)
+                    null,
+                    ['wmctrl', '-a', this.teamsAppName],
+                    null,
+                    GLib.SpawnFlags.SEARCH_PATH,
+                    null
                 );
 
-                if (success) {
-                    console.log('Successfully opened or focused Microsoft Teams window');
-                } else {
-                    console.error('Failed to open or focus Teams window');
+                if (!success) {
+                    logError(new Error('Failed to focus Teams window'));
                 }
             } catch (e) {
-                console.error('Error opening Teams window:', e.message);
+                logError(e, 'Error focusing Teams window');
             }
         }
 
-        stop() {
-            if (this._timeout) GLib.source_remove(this._timeout);
-            this._timeout = null;
+        destroy() {
+            if (this._timeout) {
+                GLib.source_remove(this._timeout);
+                this._timeout = null;
+            }
+
+            if (this._settingsChangedId) {
+                this._settings.disconnect(this._settingsChangedId);
+                this._settingsChangedId = null;
+            }
+
+            super.destroy();
         }
-    });
+    }
+);
 
 function init() {
 }
@@ -110,7 +142,6 @@ function enable() {
 
 function disable() {
     if (indicator) {
-        indicator.stop();
         indicator.destroy();
         indicator = null;
     }

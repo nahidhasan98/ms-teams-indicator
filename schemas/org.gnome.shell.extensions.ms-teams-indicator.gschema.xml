@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="ms-teams-indicator">
+    <schema id="org.gnome.shell.extensions.ms-teams-indicator" path="/org/gnome/shell/extensions/ms-teams-indicator/">
+        <key name="ms-teams-app-name" type="s">
+            <default>'Microsoft Teams'</default>
+            <summary>Microsoft Teams PWA App Name</summary>
+            <description>Name of the Microsoft Teams window to track unread messages.</description>
+        </key>
+    </schema>
+</schemalist>
