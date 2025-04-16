@@ -84,13 +84,14 @@ const TeamsIndicator = GObject.registerClass(
         }
 
         _updateIcon(teamsAppName) {
-            checkUnread(teamsAppName).then((unread) => {
-                this.icon.gicon = Gio.icon_new_for_string(
-                    Me.path + (unread ? '/assets/ms-teams-indicator-icon-alert.svg' : '/assets/ms-teams-indicator-icon.svg')
-                );
-            }).catch((error) => {
-                logError(error, 'Error updating icon');
-            });
+            this.icon.gicon = Gio.icon_new_for_string(Me.path + ('/assets/ms-teams-indicator-icon.svg'));
+            // checkUnread(teamsAppName).then((unread) => {
+            //     this.icon.gicon = Gio.icon_new_for_string(
+            //         Me.path + (unread ? '/assets/ms-teams-indicator-icon-alert.svg' : '/assets/ms-teams-indicator-icon.svg')
+            //     );
+            // }).catch((error) => {
+            //     logError(error, 'Error updating icon');
+            // });
         }
 
         _onClick() {
@@ -100,19 +101,55 @@ const TeamsIndicator = GObject.registerClass(
             }
 
             try {
-                const [success, pid] = GLib.spawn_async(
-                    null,
-                    ['wmctrl', '-a', this.teamsAppName],
-                    null,
-                    GLib.SpawnFlags.SEARCH_PATH,
-                    null
-                );
+                // First check if Teams window exists
+                let proc = new Gio.Subprocess({
+                    argv: ['wmctrl', '-l'],
+                    flags: Gio.SubprocessFlags.STDOUT_PIPE
+                });
 
-                if (!success) {
-                    logError(new Error('Failed to focus Teams window'));
-                }
+                proc.init(null);
+
+                proc.communicate_utf8_async(null, null, (proc, result) => {
+                    try {
+                        let [success, output] = proc.communicate_utf8_finish(result);
+                        if (!success || !output) {
+                            logError(new Error('Failed to get window list'));
+                            return;
+                        }
+
+                        if (output.includes(this.teamsAppName)) {
+                            // Teams window exists, focus it
+                            const [spawnSuccess, pid] = GLib.spawn_async(
+                                null,
+                                ['wmctrl', '-a', this.teamsAppName],
+                                null,
+                                GLib.SpawnFlags.SEARCH_PATH,
+                                null
+                            );
+
+                            if (!spawnSuccess) {
+                                logError(new Error('Failed to focus Teams window'));
+                            }
+                        } else {
+                            // Teams window doesn't exist, launch it
+                            const [spawnSuccess, pid] = GLib.spawn_async(
+                                null,
+                                ['/opt/google/chrome/google-chrome', '--profile-directory=Default', '--app-id=eolfpbcaeeimodpeigoelahfcbjfelad'],
+                                null,
+                                GLib.SpawnFlags.SEARCH_PATH,
+                                null
+                            );
+
+                            if (!spawnSuccess) {
+                                logError(new Error('Failed to launch Teams'));
+                            }
+                        }
+                    } catch (e) {
+                        logError(e, 'Error processing window list');
+                    }
+                });
             } catch (e) {
-                logError(e, 'Error focusing Teams window');
+                logError(e, 'Error handling Teams window');
             }
         }
 
